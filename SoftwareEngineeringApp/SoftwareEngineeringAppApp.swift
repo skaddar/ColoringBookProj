@@ -6,9 +6,11 @@
 //
 
 import SwiftUI
+import UniformTypeIdentifiers
+
 
 @main
-struct SoftwareEngineeringAppApp: App {
+struct FilePickerApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
