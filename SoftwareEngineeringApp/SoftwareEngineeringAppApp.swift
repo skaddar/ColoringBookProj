@@ -10,7 +10,7 @@ import UniformTypeIdentifiers
 
 
 @main
-struct FilePickerApp: App {
+struct SoftwareEngineeringAppApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
