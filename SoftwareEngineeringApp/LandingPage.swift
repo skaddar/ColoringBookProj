@@ -14,7 +14,7 @@ struct LandingPageView: View {
             
             
             // App Logo
-            Image(systemName: "app.fill") // Replace with actual logo
+            Image("MainIcon") 
                 .resizable()
                 .scaledToFit()
                 .frame(width: 120, height: 120)
