@@ -13,7 +13,7 @@ struct ContentView: View {
     @State private var selectedFileURL: URL?
     
     var body: some View {
-        LandingPageView()
+        LandingPageView()  
     }
 }
 
