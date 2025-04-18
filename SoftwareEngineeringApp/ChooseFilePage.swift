@@ -7,9 +7,7 @@ struct IdentifiableImage: Identifiable {
     let image: UIImage
 }
 
-
 struct ChooseFilePage: View {
-    
     @State private var selectedImages: [IdentifiableImage] = []
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var selectedImage: UIImage?
@@ -19,30 +17,42 @@ struct ChooseFilePage: View {
     @State private var tempImage: UIImage?
     @State private var navigateToProcessing = false
 
-
     let timer = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
 
     var body: some View {
-        NavigationView{
-            VStack {
+        ZStack {
+            // Background Gradient
+            LinearGradient(
+                gradient: Gradient(colors: [Color.purple.opacity(0.2), Color.blue.opacity(0.2)]),
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+
+            VStack(spacing: 20) {
+                // Preview Carousel
                 if !selectedImages.isEmpty {
                     Image(uiImage: selectedImages[currentIndex].image)
                         .resizable()
                         .scaledToFit()
                         .frame(width: 300, height: 400)
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                        .shadow(radius: 5)
-                        .padding(.horizontal)
+                        .clipShape(RoundedRectangle(cornerRadius: 20))
+                        .shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 5)
+                        .transition(.scale)
+                        .animation(.easeInOut, value: currentIndex)
                 }
-                
-                // HStack for side-by-side buttons
-                HStack(spacing: 15) { // Adjust spacing as needed
-                    
-                    // Choose File Button (Plain Text)
+
+                // Buttons
+                HStack(spacing: 30) {
+                    // Pick from Library
                     PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
-                        Text("Choose File")
+                        Label("Gallery", systemImage: "photo.on.rectangle")
+                            .padding()
+                            .frame(width: 140)
+                            .background(.ultraThinMaterial)
+                            .clipShape(RoundedRectangle(cornerRadius: 15))
                             .foregroundColor(.blue)
-                            .font(.system(size: 18, weight: .medium))
+                            .font(.headline)
                     }
                     .onChange(of: selectedPhotoItem) { newItem in
                         Task {
@@ -53,35 +63,24 @@ struct ChooseFilePage: View {
                             }
                         }
                     }
-                    
-                    
-                    // Vertical Separator Line
-                    Rectangle()
-                        .frame(width: 1, height: 20)
-                        .foregroundColor(.gray.opacity(0.5)) // Light gray line
-                    
-                    // Camera Button (Icon)
+
+                    // Open Camera
                     Button(action: {
                         showCamera = true
                     }) {
-                        Image(systemName: "camera") // SF Symbol for camera
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 24, height: 24) // Smaller size
-                            .foregroundColor(.blue) // Blue color to match text
+                        Label("Camera", systemImage: "camera.fill")
+                            .padding()
+                            .frame(width: 140)
+                            .background(.ultraThinMaterial)
+                            .clipShape(RoundedRectangle(cornerRadius: 15))
+                            .foregroundColor(.green)
+                            .font(.headline)
                     }
                 }
-                .padding(.top, 10)
-                
-                if let selectedImage = selectedImage {
-                    Image(uiImage: selectedImage)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 200, height: 200)
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                        .shadow(radius: 5)
-                }
+
+                Spacer()
             }
+            .padding()
             .onAppear {
                 if let assetImage1 = UIImage(named: "5666ed827c91085323c0cc78cc63fa82"),
                    let assetImage2 = UIImage(named: "Garden-Seeds"),
@@ -95,10 +94,11 @@ struct ChooseFilePage: View {
                     print("Error loading images from assets.")
                 }
             }
-            
             .onReceive(timer) { _ in
                 if !selectedImages.isEmpty {
-                    currentIndex = (currentIndex + 1) % selectedImages.count
+                    withAnimation {
+                        currentIndex = (currentIndex + 1) % selectedImages.count
+                    }
                 }
             }
             .sheet(isPresented: $showCamera) {
@@ -106,55 +106,52 @@ struct ChooseFilePage: View {
             }
             .sheet(isPresented: $showConfirmView) {
                 if let image = tempImage {
-                    ConfirmImageView(image: image) {_ in 
+                    ConfirmImageView(image: image) { _ in
                         navigateToProcessing = true
-                        
                     }
                 }
             }
-            .padding()
         }
+        .navigationTitle("New Coloring Page")
+        .navigationBarTitleDisplayMode(.inline)
     }
-}
+    // Camera View
+    struct CameraView: UIViewControllerRepresentable {
+        @Binding var image: UIImage?
 
-// Camera View
-struct CameraView: UIViewControllerRepresentable {
-    @Binding var image: UIImage?
+        class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
+            var parent: CameraView
 
-    class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
-        var parent: CameraView
-
-        init(parent: CameraView) {
-            self.parent = parent
-        }
-
-        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
-            if let selectedImage = info[.originalImage] as? UIImage {
-                parent.image = selectedImage
+            init(parent: CameraView) {
+                self.parent = parent
             }
-            picker.dismiss(animated: true)
+
+            func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+                if let selectedImage = info[.originalImage] as? UIImage {
+                    parent.image = selectedImage
+                }
+                picker.dismiss(animated: true)
+            }
+
+            func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+                picker.dismiss(animated: true)
+            }
         }
 
-        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            picker.dismiss(animated: true)
+        func makeCoordinator() -> Coordinator {
+            return Coordinator(parent: self)
         }
+
+        func makeUIViewController(context: Context) -> UIImagePickerController {
+            let picker = UIImagePickerController()
+            picker.delegate = context.coordinator
+            picker.sourceType = .camera
+            picker.allowsEditing = false
+            return picker
+        }
+
+        func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
     }
 
-    func makeCoordinator() -> Coordinator {
-        return Coordinator(parent: self)
-    }
-
-    func makeUIViewController(context: Context) -> UIImagePickerController {
-        let picker = UIImagePickerController()
-        picker.delegate = context.coordinator
-        picker.sourceType = .camera
-        picker.allowsEditing = false
-        return picker
-    }
-
-    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
 }
 
-#Preview {
-    ChooseFilePage()
-}
